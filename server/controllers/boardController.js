@@ -21,7 +21,6 @@ export async function createBoard(req, res) {
     );
     const board = result.rows[0];
 
-    // Auto-create default labels for the new board
     const defaultLabels = [
       { name: 'Bug', color: '#ef4444' },
       { name: 'Feature', color: '#22c55e' },
@@ -41,7 +40,6 @@ export async function createBoard(req, res) {
       );
     }
 
-    // Auto-add all existing members to the new board
     const membersResult = await query('SELECT id FROM members ORDER BY id');
     for (const member of membersResult.rows) {
       await query(
@@ -62,20 +60,17 @@ export async function getBoardById(req, res) {
   try {
     const { id } = req.params;
 
-    // 1. Get the board itself
     const boardResult = await query('SELECT * FROM boards WHERE id = $1', [id]);
     if (boardResult.rows.length === 0) {
       return res.status(404).json({ error: 'Board not found' });
     }
     const board = boardResult.rows[0];
 
-    // 2. Get board labels
     const labelsResult = await query(
       'SELECT * FROM labels WHERE board_id = $1 ORDER BY id',
       [id]
     );
 
-    // 3. Get board members
     const membersResult = await query(
       `SELECT bm.board_id, bm.member_id, m.id, m.name, m.email, m.avatar_color, m.initials
        FROM board_members bm
@@ -85,13 +80,11 @@ export async function getBoardById(req, res) {
       [id]
     );
 
-    // 4. Get all lists for this board
     const listsResult = await query(
       'SELECT * FROM lists WHERE board_id = $1 AND is_archived = false ORDER BY position',
       [id]
     );
 
-    // 5. Get all cards for these lists (non-archived)
     const listIds = listsResult.rows.map(l => l.id);
     let cards = [];
     if (listIds.length > 0) {
@@ -104,7 +97,6 @@ export async function getBoardById(req, res) {
       cards = cardsResult.rows;
     }
 
-    // 6. Get labels for all cards
     const cardIds = cards.map(c => c.id);
     let cardLabels = [];
     if (cardIds.length > 0) {
@@ -118,7 +110,6 @@ export async function getBoardById(req, res) {
       cardLabels = clResult.rows;
     }
 
-    // 7. Get members for all cards
     let cardMembers = [];
     if (cardIds.length > 0) {
       const cmResult = await query(
@@ -131,7 +122,6 @@ export async function getBoardById(req, res) {
       cardMembers = cmResult.rows;
     }
 
-    // 8. Get checklists and their items for all cards
     let checklists = [];
     let checklistItems = [];
     if (cardIds.length > 0) {
@@ -151,7 +141,6 @@ export async function getBoardById(req, res) {
       }
     }
 
-    // 9. Get comment counts for all cards
     let commentCounts = [];
     if (cardIds.length > 0) {
       const countResult = await query(
@@ -161,15 +150,11 @@ export async function getBoardById(req, res) {
       commentCounts = countResult.rows;
     }
 
-    // 10. Get custom field definitions for the board
     const customFieldsResult = await query(
       'SELECT * FROM custom_fields WHERE board_id = $1 ORDER BY id',
       [id]
     );
 
-    // --- Assemble the nested response ---
-
-    // Build checklist items map: checklistId -> items[]
     const itemsByChecklist = {};
     for (const item of checklistItems) {
       if (!itemsByChecklist[item.checklist_id]) {
@@ -183,7 +168,6 @@ export async function getBoardById(req, res) {
       });
     }
 
-    // Build checklists map: cardId -> checklists[]
     const checklistsByCard = {};
     for (const cl of checklists) {
       if (!checklistsByCard[cl.card_id]) {
@@ -196,7 +180,6 @@ export async function getBoardById(req, res) {
       });
     }
 
-    // Build card labels map: cardId -> labels[]
     const labelsByCard = {};
     for (const cl of cardLabels) {
       if (!labelsByCard[cl.card_id]) {
@@ -207,7 +190,6 @@ export async function getBoardById(req, res) {
       });
     }
 
-    // Build card members map: cardId -> members[]
     const membersByCard = {};
     for (const cm of cardMembers) {
       if (!membersByCard[cm.card_id]) {
@@ -223,13 +205,11 @@ export async function getBoardById(req, res) {
       });
     }
 
-    // Build comment count map: cardId -> count
     const commentCountMap = {};
     for (const cc of commentCounts) {
       commentCountMap[cc.card_id] = parseInt(cc.count);
     }
 
-    // Build cards map: listId -> cards[]
     const cardsByList = {};
     for (const card of cards) {
       if (!cardsByList[card.list_id]) {
@@ -251,7 +231,6 @@ export async function getBoardById(req, res) {
       });
     }
 
-    // Build final response
     const response = {
       id: board.id,
       title: board.title,
@@ -339,13 +318,11 @@ export async function getArchivedItems(req, res) {
   try {
     const { id } = req.params;
 
-    // 1. Get archived lists for this board
     const listsResult = await query(
       'SELECT * FROM lists WHERE board_id = $1 AND is_archived = true ORDER BY position',
       [id]
     );
 
-    // 2. Get archived cards for this board
     const cardsResult = await query(
       `SELECT c.*, l.title as list_title
        FROM cards c

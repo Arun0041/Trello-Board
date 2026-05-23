@@ -13,7 +13,6 @@ import attachmentRoutes from './routes/attachments.js';
 import customFieldRoutes from './routes/customFields.js';
 
 const app = express();
-// Port configuration
 const PORT = process.env.PORT;
 
 const allowedOrigins = [
@@ -27,12 +26,11 @@ if (process.env.FRONTEND_URL) {
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, or server-to-server)
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    return callback(null, true); // Fallback: allow other origins during deployment testing
+    return callback(null, true);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
@@ -51,12 +49,12 @@ app.use('/api/search', searchRoutes);
 app.use('/api/attachments', attachmentRoutes);
 app.use('/api/custom-fields', customFieldRoutes);
 
-// Health check
+// Health Check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Global error handler
+// Error Handler
 app.use((err, req, res, next) => {
   console.error('Error:', err.message);
   res.status(err.status || 500).json({

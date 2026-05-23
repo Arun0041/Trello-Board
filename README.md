@@ -1,192 +1,129 @@
-# Trello Clone — Kanban Project Management Tool
+# 📋 Trello Clone — Full-Stack Kanban Project Management Tool
 
-A full-stack Kanban-style project management web application built as a Trello clone. Organize tasks with boards, lists, and cards using drag-and-drop.
+A highly responsive, premium Kanban-style project management web application built as a feature-rich Trello Clone. Organize, prioritize, and track your tasks using boards, lists, and cards with smooth drag-and-drop mechanics.
 
-## Tech Stack
+🔗 **Live Frontend URL:** [https://trelloboard-ebon.vercel.app/](https://trelloboard-ebon.vercel.app/)  
+🔗 **GitHub Repository:** [https://github.com/Arun0041/Trello-Board](https://github.com/Arun0041/Trello-Board)
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 19, Vite, Tailwind CSS v4 (CDN) |
-| Drag & Drop | @hello-pangea/dnd |
-| Backend | Node.js, Express.js |
-| Database | PostgreSQL (raw SQL via `pg` driver) |
+---
 
-## Features
+## 🚀 Key Features
 
-### Core Features
-- **Board Management** — Create boards with title and background color
-- **Lists** — Create, edit, delete, and drag-to-reorder lists
-- **Cards** — Create, edit, delete cards with drag-and-drop between lists and within lists
-- **Card Details** — Title, description, colored labels, due dates, checklists, member assignment
-- **Search & Filter** — Search cards by title, filter by label, member, or due date
-- **Comments** — Add and delete comments on cards
-- **Activity Log** — Track card activity history
+### 🛠️ Core Kanban Engine
+* **Board Management** — Create custom boards with titles and beautiful curated background gradients/colors.
+* **Lists / Columns** — Easily add, edit, archive, and drag-and-drop to reorder lists across the board.
+* **Cards / Tasks** — Move tasks fluidly within a list or drag them to different lists with seamless state sync.
 
-### Bonus Features
-- Responsive design (mobile, tablet, desktop)
-- Multiple boards support
-- Card covers (colors)
-- Board background customization
+### 📝 Comprehensive Card Details
+* **Rich Task Details** — Add titles, dynamic descriptions, cover colors, and due dates.
+* **Interactive Checklists** — Track progress with checklists and progress bars.
+* **Collaborative Comments** — Add, edit, and delete comments on cards with inline saving and author restrictions.
+* **Search & Filter** — Instant searching by task title and filtering by labels, assignees, or due dates.
+* **Attachments** — Attach URLs and external resources to cards with dynamic previews.
+* **Custom Fields** — Create and manage custom metadata fields (e.g. Effort, Estimate) per board.
+* **Activity log** — Track the card's action history (Show/Hide details).
 
-## Database Schema
+---
 
-The database has 9 tables with proper relationships:
+## 💻 Tech Stack
 
-- `members` — Sample users (no auth required)
-- `boards` — Project boards with title and background
-- `lists` — Columns within a board, ordered by position
-- `cards` — Tasks within lists, ordered by position
-- `labels` — Colored tags per board
-- `card_labels` — Many-to-many: cards ↔ labels
-- `card_members` — Many-to-many: cards ↔ members
-- `checklists` — Checklists on cards
-- `checklist_items` — Items within checklists
-- `comments` — Comments on cards with member info
-- `activities` — Activity log for cards
-- `board_members` — Many-to-many: boards ↔ members
+* **Frontend:** React 19, Vite, Tailwind CSS (Vanilla responsive utility layer)
+* **State Management & Client:** React Context API & native fetch client with environment configuration
+* **Drag & Drop:** `@hello-pangea/dnd`
+* **Backend:** Node.js, Express.js (Modular routes and controllers)
+* **Database:** PostgreSQL (raw SQL queries with index optimizations and no heavy ORM)
+* **Deployment:**
+  * **Frontend:** Vercel (Auto-deployments)
+  * **Backend:** Render (Web Service)
+  * **Database:** Neon Serverless PostgreSQL (Free-forever tier)
 
-## Setup Instructions
+---
+
+## 📊 Database Architecture
+
+The system database consists of optimized tables with robust cascading actions and functional indexes:
+
+* `members` — User pool with custom initials and random color assignments.
+* `boards` — Project boards configured with custom title and backgrounds.
+* `lists` — Task columns mapped to specific boards, ordered by relative positions.
+* `cards` — Tasks configured with complete status, archive indicators, and list mappings.
+* `labels` — Colored tags bound to specific boards for filtering and categorizing.
+* `card_labels` — Many-to-many join mapping tags to tasks.
+* `card_members` — Many-to-many join mapping assignees to cards.
+* `board_members` — Many-to-many join mapping members who have access to boards.
+* `checklists` — Checklist lists containing tasks.
+* `checklist_items` — Custom checklists details and verification status.
+* `comments` — Time-stamped comment records with inline edit capability.
+* `activities` — Chronological action/event logging.
+* `attachments` — External links attached to cards.
+
+---
+
+## 🛠️ Setup Instructions
 
 ### Prerequisites
-- Node.js (v18+)
-- PostgreSQL (v14+)
+Ensure you have the following installed locally:
+* **Node.js** (v18+)
+* **PostgreSQL** (v14+) or a **Neon.tech** cloud database account
 
-### 1. Clone the repository
+### 1. Clone & Install
 ```bash
-git clone <repo-url>
-cd scaler-trello
-```
+# Clone the repository
+git clone https://github.com/Arun0041/Trello-Board.git
+cd Trello-Board
 
-### 2. Set up the database
-Create a PostgreSQL database:
-```sql
-CREATE DATABASE trello_clone;
-```
-
-Update the connection string in `server/.env`:
-```
-DATABASE_URL=postgresql://postgres:your_password@localhost:5432/trello_clone
-```
-
-### 3. Install dependencies
-```bash
-# Frontend
+# Install frontend dependencies
 npm install
 
-# Backend
+# Install backend dependencies
 cd server
 npm install
 ```
 
-### 4. Initialize the database (creates tables + seeds sample data)
+### 2. Configure Environment Variables
+
+Create your local `.env` files based on the provided examples:
+
+* **In root directory (`.env`):**
+  ```text
+  VITE_API_BASE=http://localhost:3001/api
+  ```
+
+* **In server directory (`server/.env`):**
+  ```text
+  DATABASE_URL=postgresql://your_user:your_password@localhost:5432/trello_clone
+  PORT=3001
+  ```
+
+### 3. Initialize & Seed Database
+You can easily create the tables and seed sample test data (5 users, 2 boards, various cards, checklists, and comments) by running:
 ```bash
 cd server
 node database/init-db.js
 ```
+*(Alternative: Execute the `schema.sql` and `seed.sql` files directly in your PostgreSQL client).*
 
-### 5. Start the application
-```bash
-# Terminal 1 — Start the backend (port 3001)
-cd server
-npm run dev
+### 4. Running Locally
+Launch both servers to start developing:
 
-# Terminal 2 — Start the frontend (port 5173)
-npm run dev
-```
+* **Start Backend Server:**
+  ```bash
+  cd server
+  npm run dev
+  ```
+  *(Runs on [http://localhost:3001](http://localhost:3001))*
 
-Open http://localhost:5173 in your browser.
+* **Start Frontend Server (in another terminal):**
+  ```bash
+  npm run dev
+  ```
+  *(Runs on [http://localhost:5173](http://localhost:5173))*
 
-## Project Structure
+---
 
-```
-scaler-trello/
-├── src/                          # Frontend (React + Vite)
-│   ├── api/api.js                # API client (all backend calls)
-│   ├── context/BoardContext.jsx  # Global board state management
-│   ├── pages/
-│   │   ├── BoardsHome.jsx        # Home page — list of boards
-│   │   └── BoardView.jsx         # Board page — lists, cards, DnD
-│   ├── components/
-│   │   ├── board/
-│   │   │   ├── Board.jsx         # Board layout (droppable for lists)
-│   │   │   ├── List.jsx          # Single list (draggable + droppable)
-│   │   │   ├── TaskCard.jsx      # Card in a list (draggable)
-│   │   │   ├── AddCard.jsx       # Add card form
-│   │   │   └── AddList.jsx       # Add list form
-│   │   ├── card/
-│   │   │   └── CardModal.jsx     # Card detail modal
-│   │   └── layout/
-│   │       ├── Navbar.jsx        # Top navigation bar
-│   │       └── BoardHeader.jsx   # Board title, filters, menu
-│   └── main.jsx                  # App entry point
-├── server/                       # Backend (Express + PostgreSQL)
-│   ├── index.js                  # Express server setup
-│   ├── database/
-│   │   ├── db.js                 # PostgreSQL connection pool
-│   │   ├── init-db.js            # Database initialization script
-│   │   ├── schema.sql            # Table definitions
-│   │   └── seed.sql              # Sample data
-│   ├── controllers/              # Route handlers (raw SQL)
-│   │   ├── boardController.js
-│   │   ├── listController.js
-│   │   ├── cardController.js
-│   │   ├── labelController.js
-│   │   ├── checklistController.js
-│   │   ├── memberController.js
-│   │   ├── commentController.js
-│   │   └── searchController.js
-│   └── routes/                   # Express route definitions
-│       ├── boards.js
-│       ├── lists.js
-│       ├── cards.js
-│       ├── labels.js
-│       ├── checklists.js
-│       ├── members.js
-│       ├── comments.js
-│       └── search.js
-└── index.html                    # Vite entry HTML
-```
+## 💡 Key Design Assumptions
 
-## Assumptions
-
-1. **No authentication** — A default user (Arun Sharma, member_id=1) is assumed to be logged in
-2. **Sample members** — 5 sample members are seeded in the database for assignment functionality
-3. **Raw SQL** — All database queries use raw SQL via the `pg` driver (no ORM)
-4. **Local PostgreSQL** — The app connects to a local PostgreSQL instance
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/boards | List all boards |
-| POST | /api/boards | Create a board |
-| GET | /api/boards/:id | Get board with all data |
-| PUT | /api/boards/:id | Update board |
-| DELETE | /api/boards/:id | Delete board |
-| POST | /api/lists/boards/:boardId/lists | Create a list |
-| PUT | /api/lists/:id | Update list title |
-| DELETE | /api/lists/:id | Delete list |
-| PUT | /api/lists/reorder/batch | Reorder lists |
-| POST | /api/cards/lists/:listId/cards | Create a card |
-| GET | /api/cards/:id | Get card details |
-| PUT | /api/cards/:id | Update card |
-| DELETE | /api/cards/:id | Delete card |
-| PUT | /api/cards/reorder/batch | Reorder/move cards |
-| POST | /api/cards/:cardId/labels/:labelId | Add label |
-| DELETE | /api/cards/:cardId/labels/:labelId | Remove label |
-| POST | /api/cards/:cardId/members/:memberId | Add member |
-| DELETE | /api/cards/:cardId/members/:memberId | Remove member |
-| GET | /api/labels/boards/:boardId/labels | Get board labels |
-| POST | /api/labels/boards/:boardId/labels | Create label |
-| PUT | /api/labels/:id | Update label |
-| DELETE | /api/labels/:id | Delete label |
-| POST | /api/checklists/cards/:cardId/checklists | Create checklist |
-| DELETE | /api/checklists/:id | Delete checklist |
-| POST | /api/checklists/:checklistId/items | Add item |
-| PUT | /api/checklists/items/:itemId | Update item |
-| DELETE | /api/checklists/items/:itemId | Delete item |
-| GET | /api/comments/cards/:cardId/comments | Get comments |
-| POST | /api/comments/cards/:cardId/comments | Add comment |
-| DELETE | /api/comments/:id | Delete comment |
-| GET | /api/members | List all members |
-| GET | /api/search/boards/:boardId | Search/filter cards |
+1. **Seamless Guest Authentication** — There is no signup system. The application automatically logs you in as `Arun Sharma` (default `member_id = 1`) to provide frictionless board management.
+2. **Board Access** — In accordance with Agile board setups, all registered platform members are accessible and automatically included in new boards to facilitate immediate task delegation.
+3. **No-ORM Philosophy** — Hand-crafted raw SQL queries are used via the `pg` client to guarantee superior performance, lightning-fast database responses, and clean control over join actions.
+4. **Environment Portability** — API endpoints and ports are completely dynamic and fetched directly from standard environment setups for instant production hosting adjustments.

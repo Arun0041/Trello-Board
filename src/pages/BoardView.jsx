@@ -23,7 +23,6 @@ export default function BoardView() {
 
   // Filter helper functions
   const isCardMatch = (card) => {
-    // 1. Text Search
     if (searchQuery.trim()) {
       const query = searchQuery.trim().toLowerCase();
       if (!card.title.toLowerCase().includes(query)) {
@@ -31,7 +30,6 @@ export default function BoardView() {
       }
     }
 
-    // 2. Label Filter
     if (filters.label) {
       const labelId = parseInt(filters.label);
       if (!card.labels?.some(l => l.id === labelId)) {
@@ -39,7 +37,6 @@ export default function BoardView() {
       }
     }
 
-    // 3. Member Filter
     if (filters.member) {
       const memberId = parseInt(filters.member);
       if (!card.members?.some(m => m.id === memberId)) {
@@ -47,7 +44,6 @@ export default function BoardView() {
       }
     }
 
-    // 4. Due Date Filter
     if (filters.due) {
       if (!card.dueDate) {
         if (filters.due !== 'none') return false;
@@ -110,21 +106,18 @@ export default function BoardView() {
     loadBoard(boardId);
   }, [boardId, loadBoard]);
 
-  // Handle drag end — this is the core drag-and-drop logic
+  // Handle drag end
   const handleDragEnd = useCallback((result) => {
-    if (hasSearch || hasFilters) return; // Disable drag and drop during search/filter
+    if (hasSearch || hasFilters) return;
     const { source, destination, type } = result;
 
-    // Dropped outside a droppable area
     if (!destination) return;
 
-    // Dropped in the same position
     if (source.droppableId === destination.droppableId && source.index === destination.index) {
       return;
     }
 
     if (type === 'list') {
-      // --- Reordering lists ---
       const newLists = [...board.lists];
       const [movedList] = newLists.splice(source.index, 1);
       newLists.splice(destination.index, 0, movedList);
@@ -132,33 +125,26 @@ export default function BoardView() {
       return;
     }
 
-    // --- Moving/reordering cards ---
     const sourceListId = parseInt(source.droppableId);
     const destListId = parseInt(destination.droppableId);
 
-    // Make a deep copy of lists
     const newLists = board.lists.map(list => ({
       ...list,
       cards: [...list.cards],
     }));
 
-    // Find source and destination lists
     const sourceList = newLists.find(l => l.id === sourceListId);
     const destList = newLists.find(l => l.id === destListId);
 
     if (!sourceList || !destList) return;
 
-    // Remove the card from the source list
     const [movedCard] = sourceList.cards.splice(source.index, 1);
 
-    // Insert it into the destination list at the right position
     destList.cards.splice(destination.index, 0, movedCard);
 
-    // Build the list of cards that need position/list updates
     const cardsToUpdate = [];
 
     if (sourceListId === destListId) {
-      // Same list — only update positions in this list
       destList.cards.forEach((card, index) => {
         cardsToUpdate.push({
           id: card.id,
@@ -167,7 +153,6 @@ export default function BoardView() {
         });
       });
     } else {
-      // Different lists — update positions in both lists
       sourceList.cards.forEach((card, index) => {
         cardsToUpdate.push({
           id: card.id,
@@ -187,12 +172,12 @@ export default function BoardView() {
     moveCards(newLists, cardsToUpdate);
   }, [board, moveCards, moveLists, hasSearch, hasFilters]);
 
-  // Handle card click — open card modal
+  // Handle card click
   const handleCardClick = useCallback((cardId) => {
     setSelectedCardId(cardId);
   }, []);
 
-  // Close card modal and refresh board data
+  // Close card modal
   const handleCloseModal = useCallback(() => {
     setSelectedCardId(null);
   }, []);

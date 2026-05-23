@@ -36,8 +36,6 @@ export async function createComment(req, res) {
   try {
     const { cardId } = req.params;
     const { text } = req.body;
-
-    // Default user is member_id = 1 (no auth system)
     const memberId = 1;
 
     const result = await query(
@@ -45,7 +43,6 @@ export async function createComment(req, res) {
       [text, cardId, memberId]
     );
 
-    // Get member info for the response
     const memberResult = await query(
       'SELECT name, avatar_color, initials FROM members WHERE id = $1',
       [memberId]
@@ -75,7 +72,6 @@ export async function deleteComment(req, res) {
   try {
     const { id } = req.params;
 
-    // Check ownership of the comment (only current user member_id = 1 can delete)
     const checkResult = await query('SELECT member_id FROM comments WHERE id = $1', [id]);
     if (checkResult.rows.length === 0) {
       return res.status(404).json({ error: 'Comment not found' });
@@ -103,7 +99,6 @@ export async function updateComment(req, res) {
       return res.status(400).json({ error: 'Comment text cannot be empty' });
     }
 
-    // Check ownership of the comment (only current user member_id = 1 can edit)
     const checkResult = await query('SELECT member_id FROM comments WHERE id = $1', [id]);
     if (checkResult.rows.length === 0) {
       return res.status(404).json({ error: 'Comment not found' });
@@ -118,7 +113,6 @@ export async function updateComment(req, res) {
       [text.trim(), id]
     );
 
-    // Get member info for the response
     const memberResult = await query(
       'SELECT name, avatar_color, initials FROM members WHERE id = $1',
       [1]
