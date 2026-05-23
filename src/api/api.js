@@ -36,6 +36,7 @@ export const addCardLabel = (cardId, labelId) => request(`/cards/${cardId}/label
 export const removeCardLabel = (cardId, labelId) => request(`/cards/${cardId}/labels/${labelId}`, { method: 'DELETE' });
 export const addCardMember = (cardId, memberId) => request(`/cards/${cardId}/members/${memberId}`, { method: 'POST' });
 export const removeCardMember = (cardId, memberId) => request(`/cards/${cardId}/members/${memberId}`, { method: 'DELETE' });
+export const updateCardCustomField = (cardId, fieldId, value) => request(`/cards/${cardId}/custom-fields/${fieldId}`, { method: 'POST', body: JSON.stringify({ value }) });
 
 // Labels
 export const getBoardLabels = (boardId) => request(`/labels/boards/${boardId}/labels`);
@@ -52,10 +53,13 @@ export const deleteChecklistItem = (itemId) => request(`/checklists/items/${item
 
 // Members
 export const getMembers = () => request('/members');
+export const createMember = (data) => request('/members', { method: 'POST', body: JSON.stringify(data) });
+export const addBoardMember = (boardId, memberId) => request(`/members/boards/${boardId}`, { method: 'POST', body: JSON.stringify({ memberId }) });
 
 // Comments
 export const getCardComments = (cardId) => request(`/comments/cards/${cardId}/comments`);
 export const createComment = (cardId, data) => request(`/comments/cards/${cardId}/comments`, { method: 'POST', body: JSON.stringify(data) });
+export const updateComment = (id, data) => request(`/comments/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteComment = (id) => request(`/comments/${id}`, { method: 'DELETE' });
 
 // Search
@@ -67,3 +71,15 @@ export const searchCards = (boardId, params) => {
   if (params.due) query.set('due', params.due);
   return request(`/search/boards/${boardId}?${query.toString()}`);
 };
+
+// Archive
+export const getArchivedItems = (boardId) => request(`/boards/${boardId}/archived`);
+
+// Attachments
+export const getCardAttachments = (cardId) => request(`/attachments/cards/${cardId}`);
+export const addCardAttachment = (cardId, data) => request(`/attachments/cards/${cardId}`, { method: 'POST', body: JSON.stringify(data) });
+export const deleteCardAttachment = (id) => request(`/attachments/${id}`, { method: 'DELETE' });
+
+// Custom Fields
+export const createCustomField = (boardId, data) => request(`/custom-fields/boards/${boardId}`, { method: 'POST', body: JSON.stringify(data) });
+export const deleteCustomField = (id) => request(`/custom-fields/${id}`, { method: 'DELETE' });

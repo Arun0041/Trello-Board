@@ -42,46 +42,46 @@ INSERT INTO labels (id, name, color, board_id) VALUES
 (16, 'Nice-to-have', '#06b6d4', 2);
 
 -- Insert Lists (Board 1)
-INSERT INTO lists (id, title, position, board_id) VALUES
-(1, 'Backlog', 0, 1),
-(2, 'To Do', 1, 1),
-(3, 'In Progress', 2, 1),
-(4, 'Review', 3, 1),
-(5, 'Done', 4, 1);
+INSERT INTO lists (id, title, position, color, board_id) VALUES
+(1, 'Today', 0, '#fdf2b5', 1),
+(2, 'This Week', 1, '#dcfce7', 1),
+(3, 'Later', 2, '#f1f2f4', 1),
+(4, 'Review', 3, NULL, 1),
+(5, 'Done', 4, NULL, 1);
 
 -- Insert Lists (Board 2)
-INSERT INTO lists (id, title, position, board_id) VALUES
-(6, 'Ideas', 0, 2),
-(7, 'Planned', 1, 2),
-(8, 'In Development', 2, 2),
-(9, 'Shipped', 3, 2);
+INSERT INTO lists (id, title, position, color, board_id) VALUES
+(6, 'Ideas', 0, NULL, 2),
+(7, 'Planned', 1, NULL, 2),
+(8, 'In Development', 2, NULL, 2),
+(9, 'Shipped', 3, NULL, 2);
 
 -- Insert Cards (Board 1)
 -- Backlog cards
-INSERT INTO cards (id, title, description, position, cover_color, due_date, list_id) VALUES
-(1, 'Set up CI/CD pipeline', 'Configure GitHub Actions for automated testing and deployment.\n\n## Requirements\n- Run tests on every PR\n- Deploy to staging on merge to develop\n- Deploy to production on merge to main', 0, NULL, NOW() + INTERVAL '7 days', 1),
-(2, 'Write API documentation', 'Document all REST API endpoints using Swagger/OpenAPI specification.', 1, NULL, NULL, 1),
-(3, 'Database performance optimization', 'Review and optimize slow database queries. Add proper indexing.', 2, '#fef3c7', NULL, 1);
+INSERT INTO cards (id, title, description, position, cover_color, due_date, is_completed, list_id) VALUES
+(1, 'Set up CI/CD pipeline', 'Configure GitHub Actions for automated testing and deployment.\n\n## Requirements\n- Run tests on every PR\n- Deploy to staging on merge to develop\n- Deploy to production on merge to main', 0, NULL, NOW() + INTERVAL '7 days', FALSE, 1),
+(2, 'Write API documentation', 'Document all REST API endpoints using Swagger/OpenAPI specification.', 1, NULL, NULL, FALSE, 1),
+(3, 'Database performance optimization', 'Review and optimize slow database queries. Add proper indexing.', 2, '#fef3c7', NULL, FALSE, 1);
 
 -- To Do cards
-INSERT INTO cards (id, title, description, position, cover_color, due_date, list_id) VALUES
-(4, 'Design user profile page', 'Create wireframes and high-fidelity mockups for the user profile page.', 0, '#dbeafe', NOW() + INTERVAL '1 day', 2),
-(5, 'Implement authentication flow', 'Set up JWT-based authentication with login, register, and password reset.', 1, NULL, NOW() + INTERVAL '7 days', 2),
-(6, 'Fix navigation bug on mobile', 'The hamburger menu does not close after selecting a menu item on mobile devices.', 2, NULL, NOW() - INTERVAL '1 day', 2);
+INSERT INTO cards (id, title, description, position, cover_color, due_date, is_completed, list_id) VALUES
+(4, 'Design user profile page', 'Create wireframes and high-fidelity mockups for the user profile page.', 0, '#dbeafe', NOW() + INTERVAL '1 day', FALSE, 2),
+(5, 'Implement authentication flow', 'Set up JWT-based authentication with login, register, and password reset.', 1, NULL, NOW() + INTERVAL '7 days', FALSE, 2),
+(6, 'Fix navigation bug on mobile', 'The hamburger menu does not close after selecting a menu item on mobile devices.', 2, NULL, NOW() - INTERVAL '1 day', FALSE, 2);
 
 -- In Progress cards
-INSERT INTO cards (id, title, description, position, cover_color, due_date, list_id) VALUES
-(7, 'Build drag-and-drop board', 'Implement the Kanban board with drag-and-drop functionality using @hello-pangea/dnd.', 0, '#dcfce7', NULL, 3),
-(8, 'Create REST API endpoints', 'Build CRUD endpoints for boards, lists, and cards.', 1, NULL, NULL, 3);
+INSERT INTO cards (id, title, description, position, cover_color, due_date, is_completed, list_id) VALUES
+(7, 'Build drag-and-drop board', 'Implement the Kanban board with drag-and-drop functionality using @hello-pangea/dnd.', 0, '#dcfce7', NULL, FALSE, 3),
+(8, 'Create REST API endpoints', 'Build CRUD endpoints for boards, lists, and cards.', 1, NULL, NULL, FALSE, 3);
 
 -- Review cards
-INSERT INTO cards (id, title, description, position, cover_color, due_date, list_id) VALUES
-(9, 'Setup project structure', 'Initialize React + Vite frontend and Express backend with proper folder structure.', 0, NULL, NULL, 4);
+INSERT INTO cards (id, title, description, position, cover_color, due_date, is_completed, list_id) VALUES
+(9, 'Setup project structure', 'Initialize React + Vite frontend and Express backend with proper folder structure.', 0, NULL, NULL, FALSE, 4);
 
 -- Done cards
-INSERT INTO cards (id, title, description, position, cover_color, due_date, list_id) VALUES
-(10, 'Initialize GitHub repository', 'Create repo, add .gitignore, set up branch protection rules.', 0, NULL, NULL, 5),
-(11, 'Define database schema', 'Design and implement the database schema with all required tables and relationships.', 1, NULL, NULL, 5);
+INSERT INTO cards (id, title, description, position, cover_color, due_date, is_completed, list_id) VALUES
+(10, 'Initialize GitHub repository', 'Create repo, add .gitignore, set up branch protection rules.', 0, NULL, NULL, TRUE, 5),
+(11, 'Define database schema', 'Design and implement the database schema with all required tables and relationships.', 1, NULL, NULL, TRUE, 5);
 
 -- Card Labels association
 INSERT INTO card_labels (card_id, label_id) VALUES
@@ -108,6 +108,15 @@ INSERT INTO card_members (card_id, member_id) VALUES
 (9, 1),
 (10, 1),
 (11, 1), (11, 3);
+
+-- Insert Custom Fields Definitions
+INSERT INTO custom_fields (id, name, type, board_id) VALUES
+(1, '# Effort', 'text', 1);
+
+-- Insert Card Custom Field Values
+INSERT INTO card_custom_fields (card_id, custom_field_id, value) VALUES
+(1, 1, '8'),
+(4, 1, '5');
 
 -- Insert Checklists
 INSERT INTO checklists (id, title, card_id) VALUES
@@ -156,6 +165,7 @@ SELECT setval('boards_id_seq', COALESCE((SELECT MAX(id) FROM boards), 1));
 SELECT setval('lists_id_seq', COALESCE((SELECT MAX(id) FROM lists), 1));
 SELECT setval('cards_id_seq', COALESCE((SELECT MAX(id) FROM cards), 1));
 SELECT setval('labels_id_seq', COALESCE((SELECT MAX(id) FROM labels), 1));
+SELECT setval('custom_fields_id_seq', COALESCE((SELECT MAX(id) FROM custom_fields), 1));
 SELECT setval('checklists_id_seq', COALESCE((SELECT MAX(id) FROM checklists), 1));
 SELECT setval('checklist_items_id_seq', COALESCE((SELECT MAX(id) FROM checklist_items), 1));
 SELECT setval('comments_id_seq', COALESCE((SELECT MAX(id) FROM comments), 1));

@@ -6,6 +6,7 @@ import Navbar from '../components/layout/Navbar';
 import BoardHeader from '../components/layout/BoardHeader';
 import Board from '../components/board/Board';
 import CardModal from '../components/card/CardModal';
+import ArchivedItemsModal from '../components/board/ArchivedItemsModal';
 import { getBgClass } from './BoardsHome';
 import * as api from '../api/api.js';
 
@@ -16,48 +17,102 @@ export default function BoardView() {
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({ label: '', member: '', due: '' });
-  const [filteredCardIds, setFilteredCardIds] = useState(null);
+
+  const hasSearch = searchQuery.trim().length > 0;
+  const hasFilters = filters.label || filters.member || filters.due;
+
+  // Filter helper functions
+  const isCardMatch = (card) => {
+    // 1. Text Search
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
+      if (!card.title.toLowerCase().includes(query)) {
+        return false;
+      }
+    }
+
+    // 2. Label Filter
+    if (filters.label) {
+      const labelId = parseInt(filters.label);
+      if (!card.labels?.some(l => l.id === labelId)) {
+        return false;
+      }
+    }
+
+    // 3. Member Filter
+    if (filters.member) {
+      const memberId = parseInt(filters.member);
+      if (!card.members?.some(m => m.id === memberId)) {
+        return false;
+      }
+    }
+
+    // 4. Due Date Filter
+    if (filters.due) {
+      if (!card.dueDate) {
+        if (filters.due !== 'none') return false;
+      } else {
+        const dueDate = new Date(card.dueDate);
+        const now = new Date();
+        if (filters.due === 'overdue') {
+          if (dueDate >= now || card.isCompleted) return false;
+        } else if (filters.due === 'today') {
+          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+          if (dueDate < startOfToday || dueDate > endOfToday) return false;
+        } else if (filters.due === 'week') {
+          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const endOfWeek = new Date(startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000);
+          if (dueDate < startOfToday || dueDate > endOfWeek) return false;
+        } else if (filters.due === 'none') {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  };
+
+  const isListMatch = (list) => {
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
+      if (list.title.toLowerCase().includes(query)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Compute lists to display
+  const displayLists = board && (hasSearch || hasFilters)
+    ? board.lists
+        .map(list => {
+          const listMatches = isListMatch(list);
+          const matchingCards = list.cards.filter(isCardMatch);
+
+          if (listMatches || matchingCards.length > 0) {
+            return {
+              ...list,
+              cards: listMatches && !hasFilters ? list.cards : matchingCards,
+            };
+          }
+          return null;
+        })
+        .filter(Boolean)
+    : board?.lists || [];
 
   // Card modal state
   const [selectedCardId, setSelectedCardId] = useState(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   // Load board data on mount
   useEffect(() => {
     loadBoard(boardId);
   }, [boardId, loadBoard]);
 
-  // Run search/filter whenever search or filters change
-  useEffect(() => {
-    const hasSearch = searchQuery.trim().length > 0;
-    const hasFilters = filters.label || filters.member || filters.due;
-
-    if (!hasSearch && !hasFilters) {
-      // No filters active — show all cards
-      setFilteredCardIds(null);
-      return;
-    }
-
-    // Debounce search requests
-    const timer = setTimeout(async () => {
-      try {
-        const params = {};
-        if (searchQuery.trim()) params.q = searchQuery.trim();
-        if (filters.label) params.label = filters.label;
-        if (filters.member) params.member = filters.member;
-        if (filters.due) params.due = filters.due;
-
-        const ids = await api.searchCards(boardId, params);
-        setFilteredCardIds(new Set(ids));
-      } catch (err) {
-        console.error('Search error:', err);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery, filters, boardId]);
-
   // Handle drag end — this is the core drag-and-drop logic
   const handleDragEnd = useCallback((result) => {
+    if (hasSearch || hasFilters) return; // Disable drag and drop during search/filter
     const { source, destination, type } = result;
 
     // Dropped outside a droppable area
@@ -130,7 +185,7 @@ export default function BoardView() {
     }
 
     moveCards(newLists, cardsToUpdate);
-  }, [board, moveCards, moveLists]);
+  }, [board, moveCards, moveLists, hasSearch, hasFilters]);
 
   // Handle card click — open card modal
   const handleCardClick = useCallback((cardId) => {
@@ -175,15 +230,15 @@ export default function BoardView() {
         board={board}
         filters={filters}
         onFilterChange={setFilters}
+        onShowArchived={() => setShowArchived(true)}
       />
 
       {/* Board content with drag and drop */}
       <DragDropContext onDragEnd={handleDragEnd}>
         <Board
-          lists={board.lists}
+          lists={displayLists}
           boardId={board.id}
           onCardClick={handleCardClick}
-          filteredCardIds={filteredCardIds}
         />
       </DragDropContext>
 
@@ -193,6 +248,14 @@ export default function BoardView() {
           cardId={selectedCardId}
           boardId={board.id}
           onClose={handleCloseModal}
+        />
+      )}
+
+      {/* Archived items modal */}
+      {showArchived && (
+        <ArchivedItemsModal
+          boardId={board.id}
+          onClose={() => setShowArchived(false)}
         />
       )}
     </div>

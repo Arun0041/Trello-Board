@@ -1,4 +1,6 @@
 -- Drop existing tables if they exist (ordered by dependencies)
+DROP TABLE IF EXISTS card_custom_fields CASCADE;
+DROP TABLE IF EXISTS custom_fields CASCADE;
 DROP TABLE IF EXISTS activities CASCADE;
 DROP TABLE IF EXISTS comments CASCADE;
 DROP TABLE IF EXISTS card_members CASCADE;
@@ -35,6 +37,8 @@ CREATE TABLE lists (
   id SERIAL PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   position INT NOT NULL,
+  color VARCHAR(50) DEFAULT NULL,
+  is_archived BOOLEAN DEFAULT FALSE,
   board_id INT NOT NULL REFERENCES boards(id) ON DELETE CASCADE
 );
 
@@ -47,6 +51,7 @@ CREATE TABLE cards (
   cover_color VARCHAR(50),
   due_date TIMESTAMP WITH TIME ZONE,
   is_archived BOOLEAN DEFAULT FALSE,
+  is_completed BOOLEAN DEFAULT FALSE,
   list_id INT NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -65,6 +70,22 @@ CREATE TABLE card_labels (
   card_id INT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
   label_id INT NOT NULL REFERENCES labels(id) ON DELETE CASCADE,
   PRIMARY KEY (card_id, label_id)
+);
+
+-- Create Custom Fields Definitions Table
+CREATE TABLE custom_fields (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  type VARCHAR(50) DEFAULT 'text',
+  board_id INT NOT NULL REFERENCES boards(id) ON DELETE CASCADE
+);
+
+-- Create Card Custom Fields Values Table
+CREATE TABLE card_custom_fields (
+  card_id INT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  custom_field_id INT NOT NULL REFERENCES custom_fields(id) ON DELETE CASCADE,
+  value TEXT DEFAULT '',
+  PRIMARY KEY (card_id, custom_field_id)
 );
 
 -- Create Checklists Table
@@ -124,3 +145,16 @@ CREATE INDEX idx_checklists_card_id ON checklists(card_id);
 CREATE INDEX idx_checklist_items_checklist_id ON checklist_items(checklist_id);
 CREATE INDEX idx_comments_card_id ON comments(card_id);
 CREATE INDEX idx_activities_card_id ON activities(card_id);
+CREATE INDEX idx_custom_fields_board_id ON custom_fields(board_id);
+CREATE INDEX idx_card_custom_fields_card_id ON card_custom_fields(card_id);
+
+-- Create Attachments Table
+CREATE TABLE attachments (
+  id SERIAL PRIMARY KEY,
+  card_id INT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  url TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_attachments_card_id ON attachments(card_id);

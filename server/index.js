@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import boardRoutes from './routes/boards.js';
@@ -8,10 +9,12 @@ import checklistRoutes from './routes/checklists.js';
 import memberRoutes from './routes/members.js';
 import commentRoutes from './routes/comments.js';
 import searchRoutes from './routes/search.js';
+import attachmentRoutes from './routes/attachments.js';
+import customFieldRoutes from './routes/customFields.js';
 
 const app = express();
 // Port configuration
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT;
 
 app.use(cors());
 app.use(express.json());
@@ -25,6 +28,8 @@ app.use('/api/checklists', checklistRoutes);
 app.use('/api/members', memberRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/attachments', attachmentRoutes);
+app.use('/api/custom-fields', customFieldRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

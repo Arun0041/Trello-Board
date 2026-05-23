@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, MoreHorizontal, Filter, Star, X } from 'lucide-react';
+import { Users, MoreHorizontal, Filter, Star, X, Archive } from 'lucide-react';
 import { useBoard } from '../../context/BoardContext';
 import * as api from '../../api/api.js';
 import { BACKGROUNDS, getBgClass } from '../../pages/BoardsHome';
 
-export default function BoardHeader({ board, filters, onFilterChange }) {
+export default function BoardHeader({ board, filters, onFilterChange, onShowArchived }) {
   const navigate = useNavigate();
   const { dispatch, editCard } = useBoard();
   const [editingTitle, setEditingTitle] = useState(false);
@@ -41,7 +41,7 @@ export default function BoardHeader({ board, filters, onFilterChange }) {
   const hasActiveFilters = filters.label || filters.member || filters.due;
 
   return (
-    <div className="h-14 px-4 flex items-center justify-between text-white shrink-0 bg-black/20 backdrop-blur-sm">
+    <div className="h-14 px-4 flex items-center justify-between text-white shrink-0 bg-black/20 backdrop-blur-sm relative z-50">
       <div className="flex items-center gap-3">
         {editingTitle ? (
           <input
@@ -173,8 +173,19 @@ export default function BoardHeader({ board, filters, onFilterChange }) {
                 </div>
 
                 <button
+                  onClick={() => {
+                    setShowMenu(false);
+                    onShowArchived();
+                  }}
+                  className="w-full text-left text-sm text-white/80 hover:bg-white/10 px-3 py-2 rounded-md transition-colors flex items-center gap-2 mb-2"
+                >
+                  <Archive size={16} />
+                  Archived items
+                </button>
+
+                <button
                   onClick={handleDeleteBoard}
-                  className="w-full text-left text-sm text-red-400 hover:bg-red-500/10 px-3 py-2 rounded-md transition-colors"
+                  className="w-full text-left text-sm text-red-400 hover:bg-red-500/10 px-3 py-2 rounded-md transition-colors flex items-center gap-2"
                 >
                   Delete board
                 </button>

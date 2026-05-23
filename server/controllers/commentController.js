@@ -74,10 +74,71 @@ export async function createComment(req, res) {
 export async function deleteComment(req, res) {
   try {
     const { id } = req.params;
+
+    // Check ownership of the comment (only current user member_id = 1 can delete)
+    const checkResult = await query('SELECT member_id FROM comments WHERE id = $1', [id]);
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    if (checkResult.rows[0].member_id !== 1) {
+      return res.status(403).json({ error: 'You can only delete your own comments' });
+    }
+
     await query('DELETE FROM comments WHERE id = $1', [id]);
     res.status(204).send();
   } catch (err) {
     console.error('deleteComment error:', err.message);
     res.status(500).json({ error: 'Failed to delete comment' });
+  }
+}
+
+// PUT /api/comments/:id — update a comment
+export async function updateComment(req, res) {
+  try {
+    const { id } = req.params;
+    const { text } = req.body;
+
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: 'Comment text cannot be empty' });
+    }
+
+    // Check ownership of the comment (only current user member_id = 1 can edit)
+    const checkResult = await query('SELECT member_id FROM comments WHERE id = $1', [id]);
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    if (checkResult.rows[0].member_id !== 1) {
+      return res.status(403).json({ error: 'You can only edit your own comments' });
+    }
+
+    const result = await query(
+      'UPDATE comments SET text = $1 WHERE id = $2 RETURNING *',
+      [text.trim(), id]
+    );
+
+    // Get member info for the response
+    const memberResult = await query(
+      'SELECT name, avatar_color, initials FROM members WHERE id = $1',
+      [1]
+    );
+    const member = memberResult.rows[0];
+
+    const comment = result.rows[0];
+    res.json({
+      id: comment.id,
+      text: comment.text,
+      createdAt: comment.created_at,
+      member: {
+        id: 1,
+        name: member.name,
+        avatarColor: member.avatar_color,
+        initials: member.initials,
+      },
+    });
+  } catch (err) {
+    console.error('updateComment error:', err.message);
+    res.status(500).json({ error: 'Failed to update comment' });
   }
 }

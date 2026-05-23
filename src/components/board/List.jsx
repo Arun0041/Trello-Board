@@ -5,8 +5,8 @@ import { useBoard } from '../../context/BoardContext';
 import TaskCard from './TaskCard';
 import AddCard from './AddCard';
 
-export default function List({ list, index, onCardClick, filteredCardIds }) {
-  const { editListTitle, removeList } = useBoard();
+export default function List({ list, index, onCardClick }) {
+  const { editListTitle, archiveList, editListColor } = useBoard();
   const [editingTitle, setEditingTitle] = useState(false);
   const [title, setTitle] = useState(list.title);
   const [showAddCard, setShowAddCard] = useState(false);
@@ -36,11 +36,9 @@ export default function List({ list, index, onCardClick, filteredCardIds }) {
     }
   };
 
-  // Handle delete list
-  const handleDelete = () => {
-    if (confirm(`Delete list "${list.title}" and all its cards?`)) {
-      removeList(list.id);
-    }
+  // Handle archive list
+  const handleArchive = () => {
+    archiveList(list.id);
   };
 
   return (
@@ -49,7 +47,11 @@ export default function List({ list, index, onCardClick, filteredCardIds }) {
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          className={`min-w-[272px] max-w-[272px] bg-[#f1f2f4] rounded-xl flex flex-col max-h-[calc(100vh-160px)] shrink-0 shadow-sm ${
+          style={{
+            backgroundColor: list.color || '#f1f2f4',
+            ...provided.draggableProps.style,
+          }}
+          className={`min-w-[272px] max-w-[272px] rounded-xl flex flex-col max-h-[calc(100vh-160px)] shrink-0 shadow-sm ${
             snapshot.isDragging ? 'rotate-2 shadow-xl' : ''
           }`}
         >
@@ -74,12 +76,17 @@ export default function List({ list, index, onCardClick, filteredCardIds }) {
                 className="flex-1 text-sm font-semibold bg-white border-2 border-blue-500 rounded-md px-2 py-1 outline-none text-slate-800"
               />
             ) : (
-              <h3
-                onClick={() => setEditingTitle(true)}
-                className="flex-1 text-sm font-semibold text-slate-800 cursor-pointer hover:bg-black/5 rounded px-1 py-0.5 -mx-1"
-              >
-                {list.title}
-              </h3>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <h3
+                  onClick={() => setEditingTitle(true)}
+                  className="text-sm font-semibold text-slate-800 cursor-pointer hover:bg-black/5 rounded px-1 py-0.5 -mx-1 truncate"
+                >
+                  {list.title}
+                </h3>
+                <span className="text-xs font-semibold bg-black/5 text-slate-600 px-1.5 py-0.5 rounded-full shrink-0">
+                  {list.cards.length}
+                </span>
+              </div>
             )}
 
             {/* List menu */}
@@ -101,11 +108,40 @@ export default function List({ list, index, onCardClick, filteredCardIds }) {
                       Add card
                     </button>
                     <button
-                      onClick={() => { setShowMenu(false); handleDelete(); }}
-                      className="w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
+                      onClick={() => { setShowMenu(false); handleArchive(); }}
+                      className="w-full text-left px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100 mb-1"
                     >
-                      Delete list
+                      Archive list
                     </button>
+
+                    <div className="px-3 py-2 border-t border-slate-150 bg-slate-50/60 rounded-b-lg">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">List color</p>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {[
+                          { name: 'Default', value: null, class: 'bg-[#f1f2f4] border-slate-300' },
+                          { name: 'Blue', value: '#bae6fd', class: 'bg-[#bae6fd]' },
+                          { name: 'Green', value: '#bbf7d0', class: 'bg-[#bbf7d0]' },
+                          { name: 'Yellow', value: '#fef08a', class: 'bg-[#fef08a]' },
+                          { name: 'Orange', value: '#fed7aa', class: 'bg-[#fed7aa]' },
+                          { name: 'Red', value: '#fecdd3', class: 'bg-[#fecdd3]' },
+                          { name: 'Purple', value: '#e9d5ff', class: 'bg-[#e9d5ff]' },
+                        ].map((c) => (
+                          <button
+                            key={c.name}
+                            onClick={() => {
+                              editListColor(list.id, c.value);
+                              setShowMenu(false);
+                            }}
+                            title={c.name}
+                            className={`w-6 h-6 rounded-full border border-black/10 hover:scale-110 active:scale-95 transition-all cursor-pointer ${c.class} ${
+                              (list.color === c.value || (!list.color && c.value === null))
+                                ? 'ring-2 ring-blue-500 ring-offset-1 scale-105'
+                                : ''
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   </div>
                   <div className="fixed inset-0 z-20" onClick={() => setShowMenu(false)} />
                 </>
@@ -129,7 +165,6 @@ export default function List({ list, index, onCardClick, filteredCardIds }) {
                     card={card}
                     index={cardIndex}
                     onClick={() => onCardClick(card.id)}
-                    dimmed={filteredCardIds !== null && !filteredCardIds.has(card.id)}
                   />
                 ))}
                 {provided.placeholder}

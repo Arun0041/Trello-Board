@@ -2,12 +2,12 @@ import { Droppable } from '@hello-pangea/dnd';
 import List from './List';
 import AddList from './AddList';
 
-export default function Board({ lists, boardId, onCardClick, filteredCardIds }) {
+export default function Board({ lists, boardId, onCardClick }) {
   return (
     <Droppable droppableId="board" direction="horizontal" type="list">
       {(provided) => (
         <div
-          className="flex-1 flex items-start gap-3 px-4 pt-3 pb-4 overflow-x-auto overflow-y-hidden"
+          className="flex-1 flex items-start gap-3 px-4 pt-3 pb-4 overflow-x-auto overflow-y-hidden relative z-0"
           ref={provided.innerRef}
           {...provided.droppableProps}
         >
@@ -17,7 +17,6 @@ export default function Board({ lists, boardId, onCardClick, filteredCardIds }) 
               list={list}
               index={index}
               onCardClick={onCardClick}
-              filteredCardIds={filteredCardIds}
             />
           ))}
           {provided.placeholder}

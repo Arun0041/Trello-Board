@@ -13,5 +13,6 @@ router.post('/:cardId/labels/:labelId', ctrl.addLabel);
 router.delete('/:cardId/labels/:labelId', ctrl.removeLabel);
 router.post('/:cardId/members/:memberId', ctrl.addMember);
 router.delete('/:cardId/members/:memberId', ctrl.removeMember);
+router.post('/:cardId/custom-fields/:fieldId', ctrl.updateCardCustomField);
 
 export default router;

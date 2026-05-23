@@ -1,8 +1,10 @@
 import { Draggable } from '@hello-pangea/dnd';
-import { MessageSquare, CheckSquare, Clock, Pencil } from 'lucide-react';
+import { CheckCircle2, Circle, MessageSquare, CheckSquare, Clock, Pencil } from 'lucide-react';
 import { format, isPast, isToday } from 'date-fns';
+import { useBoard } from '../../context/BoardContext';
 
 export default function TaskCard({ card, index, onClick, dimmed }) {
+  const { editCard } = useBoard();
   const checkedCount = card.checklists?.reduce((sum, cl) => sum + cl.items.filter(i => i.isChecked).length, 0) || 0;
   const totalCount = card.checklists?.reduce((sum, cl) => sum + cl.items.length, 0) || 0;
   const hasChecklist = totalCount > 0;
@@ -12,6 +14,11 @@ export default function TaskCard({ card, index, onClick, dimmed }) {
   const dueDate = hasDueDate ? new Date(card.dueDate) : null;
   const isOverdue = dueDate && isPast(dueDate) && !isToday(dueDate);
   const isDueToday = dueDate && isToday(dueDate);
+
+  const handleToggleComplete = (e) => {
+    e.stopPropagation();
+    editCard(card.id, { isCompleted: !card.isCompleted });
+  };
 
   return (
     <Draggable draggableId={String(card.id)} index={index}>
@@ -39,17 +46,31 @@ export default function TaskCard({ card, index, onClick, dimmed }) {
               <div className="flex gap-1 flex-wrap mb-1.5">
                 {card.labels.map(cl => (
                   <span
-                    key={cl.label.id}
-                    title={cl.label.name}
-                    className="h-2 w-10 rounded-full"
-                    style={{ backgroundColor: cl.label.color }}
-                  />
+                      key={cl.label.id}
+                      title={cl.label.name}
+                      className="h-2 w-10 rounded-full"
+                      style={{ backgroundColor: cl.label.color }}
+                    />
                 ))}
               </div>
             )}
 
-            {/* Title */}
-            <p className="text-sm text-slate-800 leading-snug mb-1.5">{card.title}</p>
+            {/* Title & Checkbox */}
+            <div className="flex items-start gap-2 mb-1.5">
+              <button
+                onClick={handleToggleComplete}
+                className="mt-0.5 shrink-0 text-slate-400 hover:text-green-600 transition-colors duration-150 focus:outline-none"
+              >
+                {card.isCompleted ? (
+                  <CheckCircle2 size={16} className="text-green-600 fill-green-100" />
+                ) : (
+                  <Circle size={16} className="opacity-60 hover:opacity-100" />
+                )}
+              </button>
+              <p className={`text-sm leading-snug text-slate-800 flex-1 ${card.isCompleted ? 'line-through text-slate-400' : ''}`}>
+                {card.title}
+              </p>
+            </div>
 
             {/* Badges row */}
             {(hasDueDate || hasChecklist || commentCount > 0 || card.members?.length > 0) && (

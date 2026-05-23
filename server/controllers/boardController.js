@@ -19,7 +19,38 @@ export async function createBoard(req, res) {
       'INSERT INTO boards (title, background) VALUES ($1, $2) RETURNING *',
       [title, background || 'gradient-purple']
     );
-    res.status(201).json(result.rows[0]);
+    const board = result.rows[0];
+
+    // Auto-create default labels for the new board
+    const defaultLabels = [
+      { name: 'Bug', color: '#ef4444' },
+      { name: 'Feature', color: '#22c55e' },
+      { name: 'Enhancement', color: '#3b82f6' },
+      { name: 'Urgent', color: '#f97316' },
+      { name: 'Design', color: '#a855f7' },
+      { name: 'Documentation', color: '#06b6d4' },
+      { name: 'Backend', color: '#eab308' },
+      { name: 'Frontend', color: '#ec4899' },
+      { name: 'Testing', color: '#84cc16' },
+      { name: '', color: '#1d1d1d' },
+    ];
+    for (const label of defaultLabels) {
+      await query(
+        'INSERT INTO labels (name, color, board_id) VALUES ($1, $2, $3)',
+        [label.name, label.color, board.id]
+      );
+    }
+
+    // Auto-add all existing members to the new board
+    const membersResult = await query('SELECT id FROM members ORDER BY id');
+    for (const member of membersResult.rows) {
+      await query(
+        'INSERT INTO board_members (board_id, member_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [board.id, member.id]
+      );
+    }
+
+    res.status(201).json(board);
   } catch (err) {
     console.error('createBoard error:', err.message);
     res.status(500).json({ error: 'Failed to create board' });
@@ -56,7 +87,7 @@ export async function getBoardById(req, res) {
 
     // 4. Get all lists for this board
     const listsResult = await query(
-      'SELECT * FROM lists WHERE board_id = $1 ORDER BY position',
+      'SELECT * FROM lists WHERE board_id = $1 AND is_archived = false ORDER BY position',
       [id]
     );
 
@@ -129,6 +160,12 @@ export async function getBoardById(req, res) {
       );
       commentCounts = countResult.rows;
     }
+
+    // 10. Get custom field definitions for the board
+    const customFieldsResult = await query(
+      'SELECT * FROM custom_fields WHERE board_id = $1 ORDER BY id',
+      [id]
+    );
 
     // --- Assemble the nested response ---
 
@@ -206,6 +243,7 @@ export async function getBoardById(req, res) {
         coverColor: card.cover_color,
         dueDate: card.due_date,
         isArchived: card.is_archived,
+        isCompleted: card.is_completed,
         labels: labelsByCard[card.id] || [],
         members: membersByCard[card.id] || [],
         checklists: checklistsByCard[card.id] || [],
@@ -240,8 +278,16 @@ export async function getBoardById(req, res) {
         id: list.id,
         title: list.title,
         position: list.position,
+        color: list.color,
+        isArchived: list.is_archived,
         boardId: list.board_id,
         cards: cardsByList[list.id] || [],
+      })),
+      customFields: customFieldsResult.rows.map(cf => ({
+        id: cf.id,
+        name: cf.name,
+        type: cf.type,
+        boardId: cf.board_id,
       })),
     };
 
@@ -285,5 +331,54 @@ export async function deleteBoard(req, res) {
   } catch (err) {
     console.error('deleteBoard error:', err.message);
     res.status(500).json({ error: 'Failed to delete board' });
+  }
+}
+
+// GET /api/boards/:id/archived — get archived cards and lists for this board
+export async function getArchivedItems(req, res) {
+  try {
+    const { id } = req.params;
+
+    // 1. Get archived lists for this board
+    const listsResult = await query(
+      'SELECT * FROM lists WHERE board_id = $1 AND is_archived = true ORDER BY position',
+      [id]
+    );
+
+    // 2. Get archived cards for this board
+    const cardsResult = await query(
+      `SELECT c.*, l.title as list_title
+       FROM cards c
+       JOIN lists l ON l.id = c.list_id
+       WHERE l.board_id = $1 AND c.is_archived = true
+       ORDER BY c.updated_at DESC`,
+      [id]
+    );
+
+    res.json({
+      lists: listsResult.rows.map(list => ({
+        id: list.id,
+        title: list.title,
+        position: list.position,
+        color: list.color,
+        isArchived: list.is_archived,
+        boardId: list.board_id,
+      })),
+      cards: cardsResult.rows.map(card => ({
+        id: card.id,
+        title: card.title,
+        description: card.description,
+        position: card.position,
+        coverColor: card.cover_color,
+        dueDate: card.due_date,
+        isArchived: card.is_archived,
+        isCompleted: card.is_completed,
+        listId: card.list_id,
+        listTitle: card.list_title,
+      })),
+    });
+  } catch (err) {
+    console.error('getArchivedItems error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch archived items' });
   }
 }

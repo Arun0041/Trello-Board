@@ -1,5 +1,17 @@
 import { query } from '../database/db.js';
 
+// Helper to log card activities
+async function logActivity(cardId, memberId, action, details) {
+  try {
+    await query(
+      'INSERT INTO activities (card_id, member_id, action, details) VALUES ($1, $2, $3, $4)',
+      [cardId, memberId, action, details]
+    );
+  } catch (err) {
+    console.error('Failed to log activity:', err.message);
+  }
+}
+
 // POST /api/cards/lists/:listId/cards — create a new card
 export async function createCard(req, res) {
   try {
@@ -19,6 +31,9 @@ export async function createCard(req, res) {
     );
 
     const card = result.rows[0];
+    
+    // Log activity
+    await logActivity(card.id, 1, 'created', 'created this card');
     res.status(201).json({
       id: card.id,
       title: card.title,
@@ -129,6 +144,15 @@ export async function getCardById(req, res) {
       [id]
     );
 
+    // 7. Get custom field values for the card
+    const customFieldsResult = await query(
+      `SELECT ccf.custom_field_id, ccf.value, cf.name, cf.type
+       FROM card_custom_fields ccf
+       JOIN custom_fields cf ON cf.id = ccf.custom_field_id
+       WHERE ccf.card_id = $1`,
+      [id]
+    );
+
     // Build response
     const response = {
       id: card.id,
@@ -138,6 +162,7 @@ export async function getCardById(req, res) {
       coverColor: card.cover_color,
       dueDate: card.due_date,
       isArchived: card.is_archived,
+      isCompleted: card.is_completed,
       listId: card.list_id,
       list: { title: card.list_title },
       labels: labelsResult.rows.map(l => ({
@@ -179,6 +204,12 @@ export async function getCardById(req, res) {
           initials: a.initials,
         },
       })),
+      customFieldValues: customFieldsResult.rows.map(cf => ({
+        customFieldId: cf.custom_field_id,
+        value: cf.value,
+        name: cf.name,
+        type: cf.type,
+      })),
     };
 
     res.json(response);
@@ -192,7 +223,20 @@ export async function getCardById(req, res) {
 export async function updateCard(req, res) {
   try {
     const { id } = req.params;
-    const { title, description, dueDate, coverColor, isArchived, listId } = req.body;
+    const { title, description, dueDate, coverColor, isArchived, listId, isCompleted } = req.body;
+
+    // Fetch the current card to check what changed
+    const currentCardResult = await query(
+      `SELECT c.description, c.due_date, c.cover_color, c.is_archived, c.list_id, c.is_completed, l.title as list_title
+       FROM cards c
+       JOIN lists l ON l.id = c.list_id
+       WHERE c.id = $1`,
+      [id]
+    );
+    if (currentCardResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Card not found' });
+    }
+    const oldCard = currentCardResult.rows[0];
 
     // Build dynamic update query
     const fields = [];
@@ -224,6 +268,11 @@ export async function updateCard(req, res) {
       fields.push(`is_archived = $${paramCount}`);
       values.push(isArchived);
     }
+    if (isCompleted !== undefined) {
+      paramCount++;
+      fields.push(`is_completed = $${paramCount}`);
+      values.push(isCompleted);
+    }
     if (listId !== undefined) {
       paramCount++;
       fields.push(`list_id = $${paramCount}`);
@@ -246,6 +295,37 @@ export async function updateCard(req, res) {
     }
 
     const card = result.rows[0];
+
+    // Log activities for the changes
+    if (description !== undefined && description !== oldCard.description) {
+      await logActivity(id, 1, 'updated_description', 'updated the description');
+    }
+    if (isArchived !== undefined && isArchived !== oldCard.is_archived) {
+      await logActivity(id, 1, 'archived', isArchived ? 'archived this card' : 'sent this card to the board');
+    }
+    if (isCompleted !== undefined && isCompleted !== oldCard.is_completed) {
+      await logActivity(id, 1, 'completed', isCompleted ? 'marked the due date complete' : 'marked the due date incomplete');
+    }
+    if (dueDate !== undefined) {
+      const oldTime = oldCard.due_date ? new Date(oldCard.due_date).getTime() : null;
+      const newTime = dueDate ? new Date(dueDate).getTime() : null;
+      if (oldTime !== newTime) {
+        if (dueDate) {
+          await logActivity(id, 1, 'updated_due_date', 'changed the due date');
+        } else {
+          await logActivity(id, 1, 'removed_due_date', 'removed the due date');
+        }
+      }
+    }
+    if (coverColor !== undefined && coverColor !== oldCard.cover_color) {
+      await logActivity(id, 1, 'updated_cover', coverColor ? 'changed the cover color' : 'removed the cover color');
+    }
+    if (listId !== undefined && Number(listId) !== oldCard.list_id) {
+      const newListResult = await query('SELECT title FROM lists WHERE id = $1', [listId]);
+      const newListTitle = newListResult.rows[0]?.title || 'another list';
+      await logActivity(id, 1, 'moved', `moved this card from ${oldCard.list_title} to ${newListTitle}`);
+    }
+
     res.json({
       id: card.id,
       title: card.title,
@@ -254,6 +334,7 @@ export async function updateCard(req, res) {
       coverColor: card.cover_color,
       dueDate: card.due_date,
       isArchived: card.is_archived,
+      isCompleted: card.is_completed,
       listId: card.list_id,
     });
   } catch (err) {
@@ -331,6 +412,11 @@ export async function addMember(req, res) {
       'INSERT INTO card_members (card_id, member_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
       [cardId, memberId]
     );
+
+    const memberResult = await query('SELECT name FROM members WHERE id = $1', [memberId]);
+    const memberName = memberResult.rows[0]?.name || 'a member';
+    await logActivity(cardId, 1, 'added_member', `added ${memberName} to this card`);
+
     res.status(201).json({ success: true });
   } catch (err) {
     console.error('addMember error:', err.message);
@@ -346,9 +432,40 @@ export async function removeMember(req, res) {
       'DELETE FROM card_members WHERE card_id = $1 AND member_id = $2',
       [cardId, memberId]
     );
+
+    const memberResult = await query('SELECT name FROM members WHERE id = $1', [memberId]);
+    const memberName = memberResult.rows[0]?.name || 'a member';
+    await logActivity(cardId, 1, 'removed_member', `removed ${memberName} from this card`);
+
     res.status(204).send();
   } catch (err) {
     console.error('removeMember error:', err.message);
     res.status(500).json({ error: 'Failed to remove member' });
+  }
+}
+
+// POST /api/cards/:cardId/custom-fields/:fieldId — update custom field value
+export async function updateCardCustomField(req, res) {
+  try {
+    const { cardId, fieldId } = req.params;
+    const { value } = req.body;
+
+    const result = await query(
+      `INSERT INTO card_custom_fields (card_id, custom_field_id, value)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (card_id, custom_field_id)
+       DO UPDATE SET value = EXCLUDED.value
+       RETURNING *`,
+      [cardId, fieldId, value]
+    );
+
+    res.json({
+      cardId: result.rows[0].card_id,
+      customFieldId: result.rows[0].custom_field_id,
+      value: result.rows[0].value,
+    });
+  } catch (err) {
+    console.error('updateCardCustomField error:', err.message);
+    res.status(500).json({ error: 'Failed to update custom field' });
   }
 }

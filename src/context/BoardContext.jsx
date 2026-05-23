@@ -27,6 +27,10 @@ function boardReducer(state, action) {
       const lists = state.board.lists.map(l => l.id === action.payload.id ? { ...l, title: action.payload.title } : l);
       return { ...state, board: { ...state.board, lists } };
     }
+    case 'UPDATE_LIST_COLOR': {
+      const lists = state.board.lists.map(l => l.id === action.payload.id ? { ...l, color: action.payload.color } : l);
+      return { ...state, board: { ...state.board, lists } };
+    }
     case 'ADD_CARD': {
       const lists = state.board.lists.map(l =>
         l.id === action.payload.listId ? { ...l, cards: [...l.cards, action.payload.card] } : l
@@ -78,9 +82,19 @@ export function BoardProvider({ children }) {
     await api.updateList(listId, { title });
   }, []);
 
+  const editListColor = useCallback(async (listId, color) => {
+    dispatch({ type: 'UPDATE_LIST_COLOR', payload: { id: listId, color } });
+    await api.updateList(listId, { color });
+  }, []);
+
   const removeList = useCallback(async (listId) => {
     dispatch({ type: 'DELETE_LIST', payload: listId });
     await api.deleteList(listId);
+  }, []);
+
+  const archiveList = useCallback(async (listId) => {
+    dispatch({ type: 'DELETE_LIST', payload: listId });
+    await api.updateList(listId, { isArchived: true });
   }, []);
 
   const addCard = useCallback(async (listId, title) => {
@@ -133,7 +147,9 @@ export function BoardProvider({ children }) {
     loadBoard,
     addList,
     editListTitle,
+    editListColor,
     removeList,
+    archiveList,
     addCard,
     editCard,
     removeCard,

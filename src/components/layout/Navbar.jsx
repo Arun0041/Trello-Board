@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 
 export default function Navbar({ searchQuery, onSearchChange }) {
   return (
-    <header className="h-12 bg-[#1d2125] border-b border-white/10 flex items-center justify-between px-3 shrink-0 z-20 text-white">
-      <div className="flex items-center gap-3">
-        <Link to="/" className="hover:bg-white/10 p-1.5 rounded transition-colors">
+    <header className="h-12 bg-black/45 backdrop-blur-sm border-b border-white/10 flex items-center justify-between px-3 shrink-0 z-20 text-white">
+      {/* Left side: Logo */}
+      <div className="flex items-center gap-3 min-w-[150px]">
+        <Link to="/" className="hover:bg-white/10 p-1.5 rounded transition-colors flex items-center justify-center">
           <Grid size={18} />
         </Link>
 
@@ -16,21 +17,24 @@ export default function Navbar({ searchQuery, onSearchChange }) {
           </div>
           Trello
         </Link>
+      </div>
 
-        {/* Search */}
-        <div className="relative ml-1 hidden md:block">
-          <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/50" />
+      {/* Middle side: Centered Search */}
+      <div className="flex-1 flex justify-center max-w-[500px]">
+        <div className="relative w-full hidden md:block">
+          <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/60" />
           <input
             type="text"
-            placeholder="Search cards..."
+            placeholder="Search"
             value={searchQuery || ''}
             onChange={e => onSearchChange(e.target.value)}
-            className="pl-8 pr-3 py-1.5 bg-white/10 border border-white/20 rounded-md text-sm w-[280px] lg:w-[400px] text-white placeholder:text-white/40 focus:bg-[#22272b] focus:border-blue-500 outline-none transition-all"
+            className="pl-8 pr-3 py-1.5 bg-white/20 border border-white/20 rounded-md text-sm w-full text-white placeholder:text-white/60 focus:bg-[#22272b] focus:border-blue-500 outline-none transition-all"
           />
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      {/* Right side: Profile */}
+      <div className="flex items-center justify-end gap-2 min-w-[150px]">
         <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-[11px] font-bold cursor-pointer ring-1 ring-white/20">
           AG
         </div>

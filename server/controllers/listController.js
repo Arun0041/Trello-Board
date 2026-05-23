@@ -33,20 +33,53 @@ export async function createList(req, res) {
   }
 }
 
-// PUT /api/lists/:id — update list title
+// PUT /api/lists/:id — update list title or status
 export async function updateList(req, res) {
   try {
     const { id } = req.params;
-    const { title } = req.body;
+    const { title, isArchived } = req.body;
+
+    const fields = [];
+    const values = [];
+    let paramCount = 0;
+
+    if (title !== undefined) {
+      paramCount++;
+      fields.push(`title = $${paramCount}`);
+      values.push(title);
+    }
+
+    if (isArchived !== undefined) {
+      paramCount++;
+      fields.push(`is_archived = $${paramCount}`);
+      values.push(isArchived);
+    }
+
+    if (fields.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    paramCount++;
+    values.push(id);
 
     const result = await query(
-      'UPDATE lists SET title = $1 WHERE id = $2 RETURNING *',
-      [title, id]
+      `UPDATE lists SET ${fields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      values
     );
+
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'List not found' });
     }
-    res.json(result.rows[0]);
+
+    const list = result.rows[0];
+    res.json({
+      id: list.id,
+      title: list.title,
+      position: list.position,
+      color: list.color,
+      isArchived: list.is_archived,
+      boardId: list.board_id,
+    });
   } catch (err) {
     console.error('updateList error:', err.message);
     res.status(500).json({ error: 'Failed to update list' });
