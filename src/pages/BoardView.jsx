@@ -185,7 +185,7 @@ export default function BoardView() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#1d2125] flex items-center justify-center">
+      <div className="h-screen w-screen bg-[#1d2125] flex items-center justify-center">
         <div className="w-10 h-10 border-3 border-white/20 border-t-white rounded-full animate-spin" />
       </div>
     );
@@ -194,7 +194,7 @@ export default function BoardView() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-[#1d2125] flex items-center justify-center text-white">
+      <div className="h-screen w-screen bg-[#1d2125] flex items-center justify-center text-white">
         <div className="text-center">
           <p className="text-red-400 text-lg mb-2">Failed to load board</p>
           <p className="text-white/50">{error}</p>
@@ -206,7 +206,9 @@ export default function BoardView() {
   if (!board) return null;
 
   return (
-    <div className={`min-h-screen flex flex-col ${getBgClass(board.background)}`}>
+    // FIX 1: h-screen + w-screen + overflow-hidden prevents white space on
+    // right and bottom edges on mobile caused by overflowing child content.
+    <div className={`h-screen w-screen overflow-hidden flex flex-col ${getBgClass(board.background)}`}>
       {/* Top navbar */}
       <Navbar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
@@ -218,30 +220,54 @@ export default function BoardView() {
         onShowArchived={() => setShowArchived(true)}
       />
 
-      {/* Board content with drag and drop */}
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Board
-          lists={displayLists}
-          boardId={board.id}
-          onCardClick={handleCardClick}
-        />
-      </DragDropContext>
+      {/* FIX 2: flex-1 + overflow-hidden so the Board handles its own internal
+          scroll (horizontal list scroll) without bleeding outside the viewport */}
+      <div className="flex-1 overflow-hidden">
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Board
+            lists={displayLists}
+            boardId={board.id}
+            onCardClick={handleCardClick}
+          />
+        </DragDropContext>
+      </div>
 
-      {/* Card detail modal */}
+      {/* FIX 3: Card modal — fixed inset-0 + flex centering guarantees the modal
+          appears dead-center on every screen size including small mobile screens.
+          px-4/py-6 adds breathing room so it never touches the edges. */}
       {selectedCardId && (
-        <CardModal
-          cardId={selectedCardId}
-          boardId={board.id}
-          onClose={handleCloseModal}
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+          {/* Semi-transparent backdrop — clicking it closes the modal */}
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={handleCloseModal}
+          />
+          {/* Modal content wrapper — relative + z-10 lifts it above the backdrop.
+              max-h-full + overflow-y-auto allows internal scrolling on small screens. */}
+          <div className="relative z-10 w-full max-w-2xl max-h-full overflow-y-auto rounded-lg">
+            <CardModal
+              cardId={selectedCardId}
+              boardId={board.id}
+              onClose={handleCloseModal}
+            />
+          </div>
+        </div>
       )}
 
-      {/* Archived items modal */}
+      {/* Archived items modal — same fixed centering pattern */}
       {showArchived && (
-        <ArchivedItemsModal
-          boardId={board.id}
-          onClose={() => setShowArchived(false)}
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setShowArchived(false)}
+          />
+          <div className="relative z-10 w-full max-w-2xl max-h-full overflow-y-auto rounded-lg">
+            <ArchivedItemsModal
+              boardId={board.id}
+              onClose={() => setShowArchived(false)}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
