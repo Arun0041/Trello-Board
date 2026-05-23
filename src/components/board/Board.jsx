@@ -7,7 +7,7 @@ export default function Board({ lists, boardId, onCardClick }) {
     <Droppable droppableId="board" direction="horizontal" type="list">
       {(provided) => (
         <div
-          className="flex-1 flex items-start gap-3 px-4 pt-3 pb-4 overflow-x-auto overflow-y-hidden relative z-0"
+          className="h-full flex items-start gap-3 px-4 pt-3 pb-4 overflow-x-auto overflow-y-hidden"
           ref={provided.innerRef}
           {...provided.droppableProps}
         >

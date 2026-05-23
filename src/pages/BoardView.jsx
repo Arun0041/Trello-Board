@@ -14,36 +14,25 @@ export default function BoardView() {
   const { boardId } = useParams();
   const { board, loading, error, loadBoard, moveCards, moveLists } = useBoard();
 
-  // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({ label: '', member: '', due: '' });
 
   const hasSearch = searchQuery.trim().length > 0;
   const hasFilters = filters.label || filters.member || filters.due;
 
-  // Filter helper functions
   const isCardMatch = (card) => {
     if (searchQuery.trim()) {
       const query = searchQuery.trim().toLowerCase();
-      if (!card.title.toLowerCase().includes(query)) {
-        return false;
-      }
+      if (!card.title.toLowerCase().includes(query)) return false;
     }
-
     if (filters.label) {
       const labelId = parseInt(filters.label);
-      if (!card.labels?.some(l => l.id === labelId)) {
-        return false;
-      }
+      if (!card.labels?.some(l => l.id === labelId)) return false;
     }
-
     if (filters.member) {
       const memberId = parseInt(filters.member);
-      if (!card.members?.some(m => m.id === memberId)) {
-        return false;
-      }
+      if (!card.members?.some(m => m.id === memberId)) return false;
     }
-
     if (filters.due) {
       if (!card.dueDate) {
         if (filters.due !== 'none') return false;
@@ -65,57 +54,43 @@ export default function BoardView() {
         }
       }
     }
-
     return true;
   };
 
   const isListMatch = (list) => {
     if (searchQuery.trim()) {
       const query = searchQuery.trim().toLowerCase();
-      if (list.title.toLowerCase().includes(query)) {
-        return true;
-      }
+      if (list.title.toLowerCase().includes(query)) return true;
     }
     return false;
   };
 
-  // Compute lists to display
   const displayLists = board && (hasSearch || hasFilters)
     ? board.lists
         .map(list => {
           const listMatches = isListMatch(list);
           const matchingCards = list.cards.filter(isCardMatch);
-
           if (listMatches || matchingCards.length > 0) {
-            return {
-              ...list,
-              cards: listMatches && !hasFilters ? list.cards : matchingCards,
-            };
+            return { ...list, cards: listMatches && !hasFilters ? list.cards : matchingCards };
           }
           return null;
         })
         .filter(Boolean)
     : board?.lists || [];
 
-  // Card modal state
   const [selectedCardId, setSelectedCardId] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
 
-  // Load board data on mount
   useEffect(() => {
     loadBoard(boardId);
   }, [boardId, loadBoard]);
 
-  // Handle drag end
   const handleDragEnd = useCallback((result) => {
     if (hasSearch || hasFilters) return;
     const { source, destination, type } = result;
 
     if (!destination) return;
-
-    if (source.droppableId === destination.droppableId && source.index === destination.index) {
-      return;
-    }
+    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
     if (type === 'list') {
       const newLists = [...board.lists];
@@ -128,61 +103,35 @@ export default function BoardView() {
     const sourceListId = parseInt(source.droppableId);
     const destListId = parseInt(destination.droppableId);
 
-    const newLists = board.lists.map(list => ({
-      ...list,
-      cards: [...list.cards],
-    }));
-
+    const newLists = board.lists.map(list => ({ ...list, cards: [...list.cards] }));
     const sourceList = newLists.find(l => l.id === sourceListId);
     const destList = newLists.find(l => l.id === destListId);
 
     if (!sourceList || !destList) return;
 
     const [movedCard] = sourceList.cards.splice(source.index, 1);
-
     destList.cards.splice(destination.index, 0, movedCard);
 
     const cardsToUpdate = [];
-
     if (sourceListId === destListId) {
       destList.cards.forEach((card, index) => {
-        cardsToUpdate.push({
-          id: card.id,
-          position: index,
-          listId: destListId,
-        });
+        cardsToUpdate.push({ id: card.id, position: index, listId: destListId });
       });
     } else {
       sourceList.cards.forEach((card, index) => {
-        cardsToUpdate.push({
-          id: card.id,
-          position: index,
-          listId: sourceListId,
-        });
+        cardsToUpdate.push({ id: card.id, position: index, listId: sourceListId });
       });
       destList.cards.forEach((card, index) => {
-        cardsToUpdate.push({
-          id: card.id,
-          position: index,
-          listId: destListId,
-        });
+        cardsToUpdate.push({ id: card.id, position: index, listId: destListId });
       });
     }
 
     moveCards(newLists, cardsToUpdate);
   }, [board, moveCards, moveLists, hasSearch, hasFilters]);
 
-  // Handle card click
-  const handleCardClick = useCallback((cardId) => {
-    setSelectedCardId(cardId);
-  }, []);
+  const handleCardClick = useCallback((cardId) => setSelectedCardId(cardId), []);
+  const handleCloseModal = useCallback(() => setSelectedCardId(null), []);
 
-  // Close card modal
-  const handleCloseModal = useCallback(() => {
-    setSelectedCardId(null);
-  }, []);
-
-  // Loading state
   if (loading) {
     return (
       <div className="h-screen w-screen bg-[#1d2125] flex items-center justify-center">
@@ -191,7 +140,6 @@ export default function BoardView() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="h-screen w-screen bg-[#1d2125] flex items-center justify-center text-white">
@@ -206,13 +154,9 @@ export default function BoardView() {
   if (!board) return null;
 
   return (
-    // FIX 1: h-screen + w-screen + overflow-hidden prevents white space on
-    // right and bottom edges on mobile caused by overflowing child content.
     <div className={`h-screen w-screen overflow-hidden flex flex-col ${getBgClass(board.background)}`}>
-      {/* Top navbar */}
       <Navbar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
-      {/* Board header with title, filters, menu */}
       <BoardHeader
         board={board}
         filters={filters}
@@ -220,8 +164,6 @@ export default function BoardView() {
         onShowArchived={() => setShowArchived(true)}
       />
 
-      {/* FIX 2: flex-1 + overflow-hidden so the Board handles its own internal
-          scroll (horizontal list scroll) without bleeding outside the viewport */}
       <div className="flex-1 overflow-hidden">
         <DragDropContext onDragEnd={handleDragEnd}>
           <Board
@@ -232,18 +174,9 @@ export default function BoardView() {
         </DragDropContext>
       </div>
 
-      {/* FIX 3: Card modal — fixed inset-0 + flex centering guarantees the modal
-          appears dead-center on every screen size including small mobile screens.
-          px-4/py-6 adds breathing room so it never touches the edges. */}
       {selectedCardId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
-          {/* Semi-transparent backdrop — clicking it closes the modal */}
-          <div
-            className="absolute inset-0 bg-black/60"
-            onClick={handleCloseModal}
-          />
-          {/* Modal content wrapper — relative + z-10 lifts it above the backdrop.
-              max-h-full + overflow-y-auto allows internal scrolling on small screens. */}
+          <div className="absolute inset-0 bg-black/60" onClick={handleCloseModal} />
           <div className="relative z-10 w-full max-w-2xl max-h-full overflow-y-auto rounded-lg">
             <CardModal
               cardId={selectedCardId}
@@ -254,13 +187,9 @@ export default function BoardView() {
         </div>
       )}
 
-      {/* Archived items modal — same fixed centering pattern */}
       {showArchived && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
-          <div
-            className="absolute inset-0 bg-black/60"
-            onClick={() => setShowArchived(false)}
-          />
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowArchived(false)} />
           <div className="relative z-10 w-full max-w-2xl max-h-full overflow-y-auto rounded-lg">
             <ArchivedItemsModal
               boardId={board.id}

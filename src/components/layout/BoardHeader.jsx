@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, MoreHorizontal, Filter, Star, X, Archive } from 'lucide-react';
+import { MoreHorizontal, Filter, X, Archive } from 'lucide-react';
 import { useBoard } from '../../context/BoardContext';
 import * as api from '../../api/api.js';
 import { BACKGROUNDS, getBgClass } from '../../pages/BoardsHome';
 
 export default function BoardHeader({ board, filters, onFilterChange, onShowArchived }) {
   const navigate = useNavigate();
-  const { dispatch, editCard } = useBoard();
+  const { dispatch } = useBoard();
   const [editingTitle, setEditingTitle] = useState(false);
   const [title, setTitle] = useState(board.title);
   const [showFilter, setShowFilter] = useState(false);
@@ -41,8 +41,10 @@ export default function BoardHeader({ board, filters, onFilterChange, onShowArch
   const hasActiveFilters = filters.label || filters.member || filters.due;
 
   return (
-    <div className="h-14 px-4 flex items-center justify-between text-white shrink-0 bg-black/20 backdrop-blur-sm relative z-50">
-      <div className="flex items-center gap-3">
+    <div className="h-14 px-3 flex items-center justify-between text-white shrink-0 bg-black/20 backdrop-blur-sm relative z-50">
+      
+      {/* Left: board title */}
+      <div className="flex items-center min-w-0 flex-1 mr-2">
         {editingTitle ? (
           <input
             ref={titleRef}
@@ -51,21 +53,23 @@ export default function BoardHeader({ board, filters, onFilterChange, onShowArch
             onChange={e => setTitle(e.target.value)}
             onBlur={saveTitle}
             onKeyDown={e => e.key === 'Enter' && saveTitle()}
-            className="text-xl font-bold bg-white/20 rounded-md px-2 py-0.5 text-white outline-none border border-white/40"
+            className="text-lg font-bold bg-white/20 rounded-md px-2 py-0.5 text-white outline-none border border-white/40 w-full max-w-[200px]"
           />
         ) : (
           <h1
             onClick={() => setEditingTitle(true)}
-            className="text-xl font-bold cursor-pointer hover:bg-white/20 rounded-md px-2 py-0.5 transition-colors"
+            className="text-lg font-bold cursor-pointer hover:bg-white/20 rounded-md px-2 py-0.5 transition-colors truncate"
           >
             {board.title}
           </h1>
         )}
       </div>
 
-      <div className="flex items-center gap-2">
-        {/* Member avatars */}
-        <div className="flex -space-x-1.5 mr-1">
+      {/* Right: avatars + filter + menu — all shrink-0 so they never get pushed off */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        
+        {/* Member avatars — hidden on very small screens to protect the menu */}
+        <div className="hidden sm:flex -space-x-1.5 mr-1">
           {board.members?.slice(0, 5).map(bm => (
             <div
               key={bm.memberId}
@@ -82,21 +86,29 @@ export default function BoardHeader({ board, filters, onFilterChange, onShowArch
         <div className="relative">
           <button
             onClick={() => setShowFilter(!showFilter)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${hasActiveFilters ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30 text-white'}`}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              hasActiveFilters ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30 text-white'
+            }`}
           >
-            <Filter size={14} /> Filter
+            <Filter size={14} />
+            <span className="hidden xs:inline">Filter</span>
             {hasActiveFilters && (
-              <button onClick={(e) => { e.stopPropagation(); onFilterChange({ label: '', member: '', due: '' }); }} className="ml-1 hover:bg-white/20 rounded-full p-0.5">
+              <button
+                onClick={(e) => { e.stopPropagation(); onFilterChange({ label: '', member: '', due: '' }); }}
+                className="ml-0.5 hover:bg-white/20 rounded-full p-0.5"
+              >
                 <X size={12} />
               </button>
             )}
           </button>
 
           {showFilter && (
-            <div className="absolute right-0 top-full mt-2 bg-[#282e33] border border-white/10 rounded-xl shadow-2xl w-72 p-4 z-50" onClick={e => e.stopPropagation()}>
+            <div
+              className="absolute right-0 top-full mt-2 bg-[#282e33] border border-white/10 rounded-xl shadow-2xl w-72 p-4 z-50"
+              onClick={e => e.stopPropagation()}
+            >
               <h3 className="text-sm font-semibold mb-3">Filter Cards</h3>
 
-              {/* Label filter */}
               <div className="mb-3">
                 <label className="text-xs text-white/50 font-medium mb-1.5 block">Label</label>
                 <select
@@ -111,7 +123,6 @@ export default function BoardHeader({ board, filters, onFilterChange, onShowArch
                 </select>
               </div>
 
-              {/* Member filter */}
               <div className="mb-3">
                 <label className="text-xs text-white/50 font-medium mb-1.5 block">Member</label>
                 <select
@@ -126,7 +137,6 @@ export default function BoardHeader({ board, filters, onFilterChange, onShowArch
                 </select>
               </div>
 
-              {/* Due date filter */}
               <div>
                 <label className="text-xs text-white/50 font-medium mb-1.5 block">Due Date</label>
                 <select
@@ -145,8 +155,8 @@ export default function BoardHeader({ board, filters, onFilterChange, onShowArch
           )}
         </div>
 
-        {/* Board menu */}
-        <div className="relative">
+        {/* Three-dot menu — shrink-0 ensures it's always visible */}
+        <div className="relative shrink-0">
           <button
             onClick={() => setShowMenu(!showMenu)}
             className="hover:bg-white/20 p-1.5 rounded transition-colors"
@@ -155,7 +165,10 @@ export default function BoardHeader({ board, filters, onFilterChange, onShowArch
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 top-full mt-2 bg-[#282e33] border border-white/10 rounded-xl shadow-2xl w-72 z-50" onClick={e => e.stopPropagation()}>
+            <div
+              className="absolute right-0 top-full mt-2 bg-[#282e33] border border-white/10 rounded-xl shadow-2xl w-72 z-50"
+              onClick={e => e.stopPropagation()}
+            >
               <div className="p-3 border-b border-white/10">
                 <h3 className="text-sm font-semibold text-center">Board Menu</h3>
               </div>
@@ -173,10 +186,7 @@ export default function BoardHeader({ board, filters, onFilterChange, onShowArch
                 </div>
 
                 <button
-                  onClick={() => {
-                    setShowMenu(false);
-                    onShowArchived();
-                  }}
+                  onClick={() => { setShowMenu(false); onShowArchived(); }}
                   className="w-full text-left text-sm text-white/80 hover:bg-white/10 px-3 py-2 rounded-md transition-colors flex items-center gap-2 mb-2"
                 >
                   <Archive size={16} />
@@ -191,7 +201,10 @@ export default function BoardHeader({ board, filters, onFilterChange, onShowArch
                 </button>
               </div>
 
-              <button onClick={() => setShowMenu(false)} className="absolute top-2.5 right-2.5 text-white/50 hover:text-white">
+              <button
+                onClick={() => setShowMenu(false)}
+                className="absolute top-2.5 right-2.5 text-white/50 hover:text-white"
+              >
                 <X size={16} />
               </button>
             </div>
@@ -199,7 +212,6 @@ export default function BoardHeader({ board, filters, onFilterChange, onShowArch
         </div>
       </div>
 
-      {/* Click-away for popups */}
       {(showFilter || showMenu) && (
         <div className="fixed inset-0 z-40" onClick={() => { setShowFilter(false); setShowMenu(false); }} />
       )}
