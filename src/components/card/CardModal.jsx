@@ -38,6 +38,7 @@ export default function CardModal({ cardId, boardId, onClose }) {
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentText, setEditingCommentText] = useState('');
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [allMembers, setAllMembers] = useState([]);
   const [attachments, setAttachments] = useState([]);
   const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
@@ -611,35 +612,54 @@ export default function CardModal({ cardId, boardId, onClose }) {
                 <Users size={13} /> Members
               </button>
               {showMemberPicker && (
-                <div className="absolute left-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-slate-200 w-72 z-30 p-3 animate-in fade-in slide-in-from-top-1 duration-150">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Board Members</h4>
-                  <div className="max-h-[150px] overflow-y-auto space-y-0.5">
-                    {board.members?.length > 0 ? board.members.map(bm => {
-                      const isAssigned = card.members?.some(cm => cm.member.id === bm.member.id);
-                      return (
-                        <button key={bm.member.id} onClick={() => handleToggleMember(bm.member.id)} className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-slate-100 rounded text-xs text-left">
-                          <div style={{ backgroundColor: bm.member.avatarColor }} className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white">{bm.member.initials}</div>
-                          <span className="flex-1 text-slate-700">{bm.member.name}</span>
-                          {isAssigned && <span className="text-blue-600 text-xs">✓</span>}
-                        </button>
-                      );
-                    }) : (
-                      <p className="text-xs text-slate-400 italic py-1">No members on this board yet.</p>
-                    )}
+                <div className="absolute left-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-slate-200 w-72 z-30 p-3 animate-in fade-in slide-in-from-top-1 duration-150 text-slate-700">
+                  <input
+                    value={memberSearchQuery}
+                    onChange={e => setMemberSearchQuery(e.target.value)}
+                    placeholder="Search members..."
+                    className="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs outline-none focus:border-blue-500 mb-3 text-slate-700 bg-white"
+                    autoFocus
+                  />
+                  
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Board Members</h4>
+                  <div className="max-h-[150px] overflow-y-auto space-y-0.5 mb-2">
+                    {(() => {
+                      const filteredBoardMembers = board.members?.filter(bm =>
+                        bm.member.name.toLowerCase().includes(memberSearchQuery.toLowerCase())
+                      ) || [];
+                      if (filteredBoardMembers.length === 0) {
+                        return <p className="text-xs text-slate-400 italic py-1">No matching board members.</p>;
+                      }
+                      return filteredBoardMembers.map(bm => {
+                        const isAssigned = card.members?.some(cm => cm.member.id === bm.member.id);
+                        return (
+                          <button key={bm.member.id} onClick={() => handleToggleMember(bm.member.id)} className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-slate-100 rounded text-xs text-left">
+                            <div style={{ backgroundColor: bm.member.avatarColor }} className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0">{bm.member.initials}</div>
+                            <span className="flex-1 text-slate-700 truncate">{bm.member.name}</span>
+                            {isAssigned && <span className="text-blue-600 text-xs">✓</span>}
+                          </button>
+                        );
+                      });
+                    })()}
                   </div>
-                  {/* Other members not on this board */}
+                  
+                  {/* Other members not on this board - only shown when searching */}
                   {(() => {
+                    if (!memberSearchQuery.trim()) return null;
                     const boardMemberIds = new Set(board.members?.map(bm => bm.member.id) || []);
-                    const otherMembers = allMembers.filter(m => !boardMemberIds.has(m.id));
+                    const otherMembers = allMembers.filter(m =>
+                      !boardMemberIds.has(m.id) &&
+                      m.name.toLowerCase().includes(memberSearchQuery.toLowerCase())
+                    );
                     if (otherMembers.length === 0) return null;
                     return (
                       <div className="border-t border-slate-200 mt-2 pt-2">
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Add to Board</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1.5">Add to Board</p>
                         <div className="max-h-[100px] overflow-y-auto space-y-0.5">
                           {otherMembers.map(m => (
                             <button key={m.id} onClick={() => handleAddMemberToBoard(m.id)} className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-green-50 rounded text-xs text-left">
-                              <div style={{ backgroundColor: m.avatarColor }} className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white">{m.initials}</div>
-                              <span className="flex-1 text-slate-700">{m.name}</span>
+                              <div style={{ backgroundColor: m.avatarColor }} className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0">{m.initials}</div>
+                              <span className="flex-1 text-slate-700 truncate">{m.name}</span>
                               <span className="text-green-600 text-[10px] font-medium">+ Add</span>
                             </button>
                           ))}
@@ -647,6 +667,7 @@ export default function CardModal({ cardId, boardId, onClose }) {
                       </div>
                     );
                   })()}
+                  
                   <div className="border-t border-slate-200 mt-2 pt-2">
                     {showCreateMember ? (
                       <form onSubmit={handleCreateMember} className="space-y-2">
@@ -654,15 +675,14 @@ export default function CardModal({ cardId, boardId, onClose }) {
                           value={newMemberName}
                           onChange={e => setNewMemberName(e.target.value)}
                           placeholder="Full name"
-                          autoFocus
-                          className="w-full border border-slate-300 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500 text-slate-700"
+                          className="w-full border border-slate-300 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500 text-slate-700 bg-white"
                         />
                         <input
                           value={newMemberEmail}
                           onChange={e => setNewMemberEmail(e.target.value)}
                           placeholder="Email address"
                           type="email"
-                          className="w-full border border-slate-300 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500 text-slate-700"
+                          className="w-full border border-slate-300 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500 text-slate-700 bg-white"
                         />
                         <div className="flex gap-2">
                           <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded font-medium">Create & Add</button>
@@ -675,7 +695,7 @@ export default function CardModal({ cardId, boardId, onClose }) {
                       </button>
                     )}
                   </div>
-                  <div className="fixed inset-0 -z-10" onClick={() => { setShowMemberPicker(false); setShowCreateMember(false); }} />
+                  <div className="fixed inset-0 -z-10" onClick={() => { setShowMemberPicker(false); setShowCreateMember(false); setMemberSearchQuery(''); }} />
                 </div>
               )}
             </div>
